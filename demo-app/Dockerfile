@@ -1,8 +1,8 @@
 FROM node:12.18-alpine
 ENV NODE_ENV=production
-ENV PORT=80
+ENV PORT=5000
 WORKDIR /app
 COPY . .
 RUN npm install --silent
-EXPOSE 80
+EXPOSE 5000
 CMD ["npm", "start"]
