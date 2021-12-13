@@ -1,4 +1,3 @@
-name: Deploy to Amazon ECS
 
 on:
   release:
@@ -6,6 +5,7 @@ on:
   push:
     branches: [main]
 
+name: Deploy to Amazon ECS
 
 jobs:
   deploy:
@@ -24,26 +24,21 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: us-east-1
 
-
     - name: Login to Amazon ECR
       id: login-ecr
       uses: aws-actions/amazon-ecr-login@v1
-    
 
-
-    - name: Docker compose the stack
-      run: docker-compose up -d
-
-    - name: tag, and push image to Amazon ECR
+    - name: Build, tag, and push image to Amazon ECR
       id: build-image
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        ECR_REPOSITORY: apiflask_demo
-        IMAGE_TAG: fatzs
+        ECR_REPOSITORY: docker_node
+        IMAGE_TAG: ${{ github.sha }}
       run: |
         # Build a docker container and
         # push it to ECR so that it can
         # be deployed to ECS.
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ./demo-app
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
         echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
 
@@ -52,13 +47,16 @@ jobs:
       uses: aws-actions/amazon-ecs-render-task-definition@v1
       with:
         task-definition: task-definition.json
-        container-name: andreslon-app
+        container-name: docker_node
         image: ${{ steps.build-image.outputs.image }}
 
     - name: Deploy Amazon ECS task definition
       uses: aws-actions/amazon-ecs-deploy-task-definition@v1
       with:
         task-definition: ${{ steps.task-def.outputs.task-definition }}
-        service: andreslon-app-service
-        cluster: andreslon-cluster
+        service: docker-node-server
+        cluster: docker-node-cluster
         wait-for-service-stability: true
+
+
+        
